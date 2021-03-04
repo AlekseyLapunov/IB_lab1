@@ -188,7 +188,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Path to Kardano Grid pattern TXT (ASCII) file:</string>
+     <string>Path to key TXT file:</string>
     </property>
    </widget>
   </widget>

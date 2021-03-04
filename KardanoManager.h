@@ -70,6 +70,8 @@ private:
     void findAndIncrement(int exodus, int sideSize);
 
     void clearDynArrays();
+
+    void dropKey(int sideSize);
 };
 
 #endif // KARDANOMANAGER_H

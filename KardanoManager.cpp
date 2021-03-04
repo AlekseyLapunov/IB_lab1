@@ -40,7 +40,7 @@ void KardanoManager::fillKardano(QString inputStr, int sideSize, QString fileNam
     this->fromInputToKardano(inputStr, sideSize);
     // Отправляем в текстовый файл заполненную символами карту Кардано
     this->sendToFile(chars_d, sideSize, matrixPtr);
-    // Ставим метки согласно отмеченным полям в приложенном файле
+    // Ставим метки согласно приложенному ключу
     this->markThem(sideSize, fileName, matrixPtr);
 }
 
@@ -119,16 +119,9 @@ void KardanoManager::sendToFile(int flag, int sideSize, KardanoManager::kardanoG
     here.mkdir("kardanos/debug_forms");
 
     QString definedByFlag = defineNameByFlag(flag);
-    if(definedByFlag != "kardano_pattern.txt")
-    {
-        QFile output("kardanos/debug_forms/" + definedByFlag);
-        fillByFlag(flag, sideSize, output, input);
-    }
-    else
-    {
-        QFile output("kardanos/" + definedByFlag);
-        fillByFlag(flag, sideSize, output, input);
-    }
+    QFile output("kardanos/debug_forms/" + definedByFlag);
+    fillByFlag(flag, sideSize, output, input);
+
 }
 
 QString KardanoManager::defineNameByFlag(int flag)
@@ -205,6 +198,8 @@ void KardanoManager::markThem(int k, int sideSize, KardanoManager::kardanoGrid *
     }
     // Отправляем в текстовый файл первую помеченную форму
     this->sendToFile(pattern, sideSize, matrixPtr);
+    // Сбрасываем ключ шифрования
+    this->dropKey(sideSize);
     doRotate(sideSize, markedTempo);
     findAndIncrement(1, sideSize);
     sumMatrix(sideSize);
@@ -344,40 +339,44 @@ void KardanoManager::markThem(int sideSize, QString fileName, KardanoManager::ka
         for(int j = 0; j < sideSize; j++)
             markedTempo[i][j] = 0;
 
-    std::fstream textStream(fileName.toStdString(), std::ios::in);
-    textStream.open(fileName.toStdString());
-    if (textStream.is_open())
+
+    QFile from(fileName);
+    if(from.open(QIODevice::ReadOnly))
     {
-            textStream.clear();
-            textStream.seekg(0, std::ios::beg);
+        QTextStream fromStream(&from);
+        QString gotString = from.readLine();
+        if(gotString.size() == sideSize*sideSize)
+        {
+            int temp = 0;
             for(int i = 0; i < sideSize; i++)
                 for(int j = 0; j < sideSize; j++)
                 {
-                    int value = 0;
-                    textStream >> value;
+                    int value = gotString.at(temp).digitValue();
                     input[i][j].marked = value;
                     markedTempo[i][j] = value;
+                    temp++;
                 }
-            textStream.close();
+        }
+        from.close();
 
-            // Отправляем в текстовый файл первую помеченную форму
-            this->sendToFile(pattern, sideSize, input);
+        // Отправляем в текстовый файл первую помеченную форму
+        this->sendToFile(pattern, sideSize, input);
 
-            doRotate(sideSize, markedTempo);
-            findAndIncrement(1, sideSize);
-            sumMatrix(sideSize);
-            // Отправляем в текстовый файл форму после первого поворота
-            this->sendToFile(rotate1, sideSize, matrixPtr);
-            doRotate(sideSize, markedTempo);
-            findAndIncrement(2, sideSize);
-            sumMatrix(sideSize);
-            // Отправляем в текстовый файл форму после второго поворота
-            this->sendToFile(rotate2, sideSize, matrixPtr);
-            doRotate(sideSize, markedTempo);
-            findAndIncrement(3, sideSize);
-            sumMatrix(sideSize);
-            // Отправляем в текстовый файл форму после третьего поворота
-            this->sendToFile(rotate3, sideSize, matrixPtr);
+        doRotate(sideSize, markedTempo);
+        findAndIncrement(1, sideSize);
+        sumMatrix(sideSize);
+        // Отправляем в текстовый файл форму после первого поворота
+        this->sendToFile(rotate1, sideSize, matrixPtr);
+        doRotate(sideSize, markedTempo);
+        findAndIncrement(2, sideSize);
+        sumMatrix(sideSize);
+        // Отправляем в текстовый файл форму после второго поворота
+        this->sendToFile(rotate2, sideSize, matrixPtr);
+        doRotate(sideSize, markedTempo);
+        findAndIncrement(3, sideSize);
+        sumMatrix(sideSize);
+        // Отправляем в текстовый файл форму после третьего поворота
+        this->sendToFile(rotate3, sideSize, matrixPtr);
     }
 }
 
@@ -402,6 +401,27 @@ void KardanoManager::clearDynArrays()
 
     delete[] markedTempo;
     markedTempo = nullptr;
+}
+
+void KardanoManager::dropKey(int sideSize)
+{
+    QDir here;
+    if(!here.exists("kardanos"))
+    here.mkdir("kardanos");
+
+    QFile temp("kardanos/key.txt");
+    if (temp.open(QIODevice::WriteOnly))
+    {
+            QTextStream textStream(&temp);
+            for(int i = 0; i < sideSize; i++)
+            {
+                for(int j = 0; j < sideSize; j++)
+                {
+                    textStream << matrixPtr[i][j].marked;
+                }
+            }
+            temp.close();
+    }
 }
 
 void KardanoManager::doMalloc(int sideSize)
